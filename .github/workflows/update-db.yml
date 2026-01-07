@@ -1,0 +1,40 @@
+name: update-db
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+  schedule:
+  - cron: '0 */6 * * *'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  update-db:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install
+      run: |
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    - name: Checkout
+      run: |
+        git fetch
+        git checkout origin/master
+    - name: Update repos
+      run: |
+        git submodule update --init
+        ./repos-update.sh
+    - name: Generate DB
+      run: cargo run
+    - name: Push
+      run: |
+        git config user.name 'Auto Generator'
+        git config user.email 'none'
+        git add -f wayland.db
+        git commit -am "Generate DB"
+        git push -f origin HEAD:refs/heads/db

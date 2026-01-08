@@ -22,6 +22,8 @@ create table protocol
     description_id bigint references description
 );
 
+create index protocol_repo_id on protocol (repo_id);
+
 create table interface
 (
     interface_id   bigint primary key,
@@ -30,6 +32,8 @@ create table interface
     version        bigint not null,
     description_id bigint references description
 );
+
+create index interface_protocol_id on interface (protocol_id);
 
 create table enum
 (
@@ -40,6 +44,8 @@ create table enum
     is_bitfield    boolean not null,
     description_id bigint references description
 );
+
+create index enum_interface_id on enum (interface_id);
 
 create table entry
 (
@@ -54,6 +60,8 @@ create table entry
     description_id   bigint references description
 );
 
+create index entry_enum_id on entry (enum_id);
+
 create table message
 (
     message_id       bigint primary key,
@@ -66,6 +74,8 @@ create table message
     deprecated_since bigint,
     description_id   bigint references description
 );
+
+create index message_interface_id on message (interface_id);
 
 create table type
 (
@@ -86,6 +96,8 @@ create table arg
     allow_null     boolean not null,
     enum_name      text
 );
+
+create index arg_message_id on arg (message_id);
 
 create index arg_type_id on arg (type_id);
 

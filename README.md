@@ -13,6 +13,7 @@ protocols from the following sources:
 - https://gitlab.freedesktop.org/wayland/weston.git
 - https://github.com/pop-os/cosmic-protocols.git
 - https://codeberg.org/river/river.git
+- https://github.com/mahkoh/wayland-db-external.git
 
 The schema can be found in `schema.sql`. The database file is updated
 automatically every 6 hours.

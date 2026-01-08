@@ -28,3 +28,6 @@
 [submodule "repos/river"]
 	path = repos/river
 	url = https://codeberg.org/river/river.git
+[submodule "repos/external"]
+	path = repos/external
+	url = https://github.com/mahkoh/wayland-db-external.git

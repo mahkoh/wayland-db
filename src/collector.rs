@@ -29,6 +29,10 @@ pub(crate) fn collect() -> Vec<Repo> {
             ..Default::default()
         },
         Config {
+            dir: "external",
+            ..Default::default()
+        },
+        Config {
             dir: "hyprland-protocols",
             ..Default::default()
         },

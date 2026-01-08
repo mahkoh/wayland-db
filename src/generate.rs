@@ -1,11 +1,12 @@
 use {
     crate::{
-        ast::{ArgType, Description, MessageType},
+        ast::{ArgType, Description, Interface, MessageType},
         collector::collect,
     },
     indexmap::IndexMap,
     linearize::{StaticMap, static_map},
     rusqlite::{Transaction, config::DbConfig, params},
+    std::collections::HashMap,
     thiserror::Error,
 };
 
@@ -211,6 +212,12 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
             .execute(params![repo_id, &repo.name, repo.url.trim()])
             .map_err(GeneratorError::InsertRepo)?;
         for protocol in &repo.protocols {
+            struct LocalInterface<'a> {
+                interface_id: i64,
+                interface: &'a Interface,
+                enums: HashMap<&'a str, i64>,
+            }
+            let mut interfaces: IndexMap<&str, LocalInterface<'_>> = Default::default();
             let protocol_id = next_id();
             let description_id = insert_description!(&protocol.description);
             insert_protocol
@@ -227,6 +234,14 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                 let interface_id = next_id();
                 let interface_dep = interface_deps.entry(&interface.name).or_default();
                 interface_dep.interface_ids.push(interface_id);
+                let local_interface = interfaces
+                    .entry(&interface.name)
+                    .insert_entry(LocalInterface {
+                        interface_id,
+                        interface,
+                        enums: Default::default(),
+                    })
+                    .into_mut();
                 let description_id = insert_description!(&interface.description);
                 insert_interface
                     .execute(params![
@@ -245,6 +260,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                         .or_default()
                         .enum_ids
                         .push(enum_id);
+                    local_interface.enums.insert(&enum_.name, enum_id);
                     let description_id = insert_description!(&enum_.description);
                     insert_enum
                         .execute(params![
@@ -274,13 +290,15 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                             .map_err(GeneratorError::InsertEntry)?;
                     }
                 }
-                for message in &interface.messages {
+            }
+            for interface in interfaces.values() {
+                for message in &interface.interface.messages {
                     let message_id = next_id();
                     let description_id = insert_description!(&message.description);
                     insert_message
                         .execute(params![
                             message_id,
-                            interface_id,
+                            interface.interface_id,
                             message.message_id as i64,
                             &message.name,
                             message.is_request,
@@ -308,24 +326,38 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                             ])
                             .map_err(GeneratorError::InsertArg)?;
                         if let Some(interface_name) = &arg.interface {
-                            interface_deps
-                                .entry(interface_name)
-                                .or_default()
-                                .arg_ids
-                                .push(arg_id);
+                            if let Some(local_interface) = interfaces.get(&**interface_name) {
+                                insert_rel_arg_interface
+                                    .insert(params![arg_id, local_interface.interface_id])
+                                    .map_err(GeneratorError::InsertRelArgInterface)?;
+                            } else {
+                                interface_deps
+                                    .entry(interface_name)
+                                    .or_default()
+                                    .arg_ids
+                                    .push(arg_id);
+                            }
                         }
                         if let Some(enum_name) = &arg.enum_ {
                             let (interface_name, enum_name) = enum_name
                                 .split_once(".")
-                                .unwrap_or((&interface.name, enum_name));
-                            interface_deps
-                                .entry(interface_name)
-                                .or_default()
-                                .enums
-                                .entry(enum_name)
-                                .or_default()
-                                .arg_ids
-                                .push(arg_id);
+                                .unwrap_or((&interface.interface.name, enum_name));
+                            if let Some(local_interface) = interfaces.get(interface_name)
+                                && let Some(enum_id) = local_interface.enums.get(enum_name)
+                            {
+                                insert_rel_arg_enum
+                                    .insert(params![arg_id, enum_id])
+                                    .map_err(GeneratorError::InsertRelArgEnum)?;
+                            } else {
+                                interface_deps
+                                    .entry(interface_name)
+                                    .or_default()
+                                    .enums
+                                    .entry(enum_name)
+                                    .or_default()
+                                    .arg_ids
+                                    .push(arg_id);
+                            }
                         }
                     }
                 }

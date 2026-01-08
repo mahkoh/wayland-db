@@ -43,15 +43,16 @@ order by r.name, p.name, i.name, m.name, a.name;
 ```
 
 ```
-+-----------------+---------------------------+------------------------+-------------+-----+------+
-|repo             |proto                      |interface               |message      |arg  |type  |
-+-----------------+---------------------------+------------------------+-------------+-----+------+
-|jay-protocols    |jay_popup_ext_v1           |jay_popup_ext_manager_v1|get_ext      |popup|object|
-|jay-protocols    |jay_tray_v1                |jay_tray_item_v1        |get_popup    |popup|object|
-|wayland-protocols|xdg_shell                  |xdg_surface             |get_popup    |id   |new_id|
-|wayland-protocols|xdg_shell_unstable_v5      |xdg_shell               |get_xdg_popup|id   |new_id|
-|wlr-protocols    |wlr_layer_shell_unstable_v1|zwlr_layer_surface_v1   |get_popup    |popup|object|
-+-----------------+---------------------------+------------------------+-------------+-----+------+
++-----------------+---------------------------+------------------------+----------------------------+-----+------+
+|repo             |proto                      |interface               |message                     |arg  |type  |
++-----------------+---------------------------+------------------------+----------------------------+-----+------+
+|external         |aura_shell                 |zaura_shell             |get_aura_popup_for_xdg_popup|popup|object|
+|jay-protocols    |jay_popup_ext_v1           |jay_popup_ext_manager_v1|get_ext                     |popup|object|
+|jay-protocols    |jay_tray_v1                |jay_tray_item_v1        |get_popup                   |popup|object|
+|wayland-protocols|xdg_shell                  |xdg_surface             |get_popup                   |id   |new_id|
+|wayland-protocols|xdg_shell_unstable_v5      |xdg_shell               |get_xdg_popup               |id   |new_id|
+|wlr-protocols    |wlr_layer_shell_unstable_v1|zwlr_layer_surface_v1   |get_popup                   |popup|object|
++-----------------+---------------------------+------------------------+----------------------------+-----+------+
 ```
 
 Find all inter-protocol dependencies in wayland-protocols:
@@ -90,14 +91,8 @@ order by downstream, upstream;
 |ext_image_copy_capture_v1      |ext_image_capture_source_v1 |
 |input_method_experimental_v2   |xx_text_input_unstable_v3   |
 |keyboard_filter_experimental_v1|input_method_experimental_v2|
-|linux_dmabuf_unstable_v1       |linux_dmabuf_v1             |
-|linux_dmabuf_v1                |linux_dmabuf_unstable_v1    |
-|tablet_unstable_v2             |tablet_v2                   |
-|tablet_v2                      |tablet_unstable_v2          |
 |xdg_decoration_unstable_v1     |xdg_shell                   |
 |xdg_dialog_v1                  |xdg_shell                   |
-|xdg_shell                      |xdg_shell_unstable_v5       |
-|xdg_shell_unstable_v5          |xdg_shell                   |
 |xdg_toplevel_drag_v1           |xdg_shell                   |
 |xdg_toplevel_icon_v1           |xdg_shell                   |
 |xdg_toplevel_tag_v1            |xdg_shell                   |

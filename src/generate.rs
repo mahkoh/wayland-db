@@ -157,7 +157,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
             .execute(params![
                 id,
                 &description.summary,
-                format_description(&description.body)
+                format_ml_text(&description.body)
             ])
             .map_err(GeneratorError::InsertDescription)
     };
@@ -226,7 +226,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                     repo_id,
                     &protocol.name,
                     &protocol.path,
-                    protocol.copyright.as_ref().map(|c| &c.body),
+                    protocol.copyright.as_ref().map(|c| format_ml_text(&c.body)),
                     description_id,
                 ])
                 .map_err(GeneratorError::InsertProtocol)?;
@@ -387,8 +387,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
     Ok(())
 }
 
-fn format_description(description: &str) -> String {
-    let mut needs_newline = false;
+fn format_ml_text(description: &str) -> String {
     let mut trim = None;
     let mut empty_lines = 0;
     let mut out = String::new();
@@ -454,11 +453,8 @@ fn format_description(description: &str) -> String {
             }
             empty_lines = 0;
         }
-        if needs_newline {
-            needs_newline = false;
-            out.push_str("\n");
-        }
         out.push_str(line);
+        out.push_str("\n");
     }
     out
 }

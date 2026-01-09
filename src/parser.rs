@@ -268,6 +268,7 @@ fn parse_copyright(
             let event = reader.read_event().map_err(CopyrightError::ReadEvent)?;
             match event {
                 Event::Text(s) => body.extend_from_slice(s.as_ref()),
+                Event::CData(s) => body.extend_from_slice(s.as_ref()),
                 Event::End(_) => break,
                 _ => continue,
             }

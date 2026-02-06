@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
     steps:
     - uses: actions/checkout@v2
     - name: Install
@@ -38,3 +39,10 @@ jobs:
         git add -f wayland.db
         git commit -am "Generate DB"
         git push -f origin HEAD:refs/heads/db
+    - name: Notify failed build
+      uses: jayqi/failed-build-issue-action@1a893bbf43ef1c2a8705e2b115cd4f0fe3c5649b # v1
+      if: failure()
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        label-name: 'auto-update'
+        title-template: 'Auto Update Failed'

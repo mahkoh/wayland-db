@@ -105,9 +105,9 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
     // language=sqlite
     let mut insert_interface = prepare(
         "insert into interface \
-         (interface_id, protocol_id, name, version, description_id) \
+         (interface_id, protocol_id, name, version, is_frozen, description_id) \
          values \
-         (?, ?, ?, ?, ?)",
+         (?, ?, ?, ?, ?, ?)",
     )?;
     // language=sqlite
     let mut insert_enum = prepare(
@@ -249,6 +249,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                         protocol_id,
                         &interface.name,
                         interface.version as i64,
+                        interface.frozen,
                         description_id,
                     ])
                     .map_err(GeneratorError::InsertInterface)?;

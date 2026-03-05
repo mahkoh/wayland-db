@@ -30,6 +30,7 @@ create table interface
     protocol_id    bigint not null references protocol,
     name           text   not null,
     version        bigint not null,
+    is_frozen      boolean,
     description_id bigint references description
 );
 

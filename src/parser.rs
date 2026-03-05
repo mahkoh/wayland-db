@@ -82,6 +82,8 @@ pub enum InterfaceError {
     Description(#[from] DescriptionError),
     #[error("could not parse an enum element")]
     Enum(#[from] EnumError),
+    #[error("could not parse the frozen attribute")]
+    Frozen(#[source] ParseBoolError),
 }
 
 #[derive(Debug, Error)]
@@ -316,11 +318,13 @@ fn parse_interface(
 ) -> Result<Interface, InterfaceError> {
     let mut name = None;
     let mut version = None;
+    let mut frozen = None;
     for attr in attributes {
         let (n, value) = parse_attr!(attr)?;
         match n {
             b"name" => name = Some(value.into_owned()),
             b"version" => version = Some(value.parse().map_err(InterfaceError::Version)?),
+            b"frozen" => frozen = Some(value.parse().map_err(InterfaceError::Frozen)?),
             _ => continue,
         }
     }
@@ -359,6 +363,7 @@ fn parse_interface(
     Ok(Interface {
         name,
         version: version.ok_or(InterfaceError::MissingVersion)?,
+        frozen,
         description,
         messages,
         enums,

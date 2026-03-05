@@ -24,6 +24,7 @@ pub(crate) struct Description {
 pub(crate) struct Interface {
     pub(crate) name: String,
     pub(crate) version: u32,
+    pub(crate) frozen: Option<bool>,
     pub(crate) description: Option<Description>,
     pub(crate) messages: Vec<Message>,
     pub(crate) enums: Vec<Enum>,

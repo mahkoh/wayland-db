@@ -90,7 +90,7 @@ pub(crate) fn collect(id_source: &mut IdSource) -> Vec<Repo> {
         };
         let mut protocols = vec![];
         let dir = repos_dir.join(config.dir);
-        for file in WalkDir::new(&dir) {
+        for file in WalkDir::new(&dir).sort_by_file_name() {
             let file = match file {
                 Ok(f) => f,
                 Err(e) => {

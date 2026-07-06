@@ -300,7 +300,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                         .execute(params![
                             message_id,
                             interface.interface_id,
-                            message.message_id as i64,
+                            message.number as i64,
                             &message.name,
                             message.is_request,
                             message.ty == Some(MessageType::Destructor),

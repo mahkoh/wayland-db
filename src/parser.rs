@@ -374,7 +374,7 @@ fn parse_message(
     reader: &mut Reader<&[u8]>,
     attributes: Attributes,
     empty: bool,
-    message_ids: &mut usize,
+    numbers: &mut usize,
     is_request: bool,
 ) -> Result<Message, MessageError> {
     let mut name = None;
@@ -416,11 +416,11 @@ fn parse_message(
             }
         }
     }
-    let message_id = *message_ids;
-    *message_ids += 1;
+    let number = *numbers;
+    *numbers += 1;
     Ok(Message {
         name: name.ok_or(MessageError::MissingName)?,
-        message_id,
+        number,
         is_request,
         ty,
         since,

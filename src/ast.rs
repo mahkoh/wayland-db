@@ -81,7 +81,7 @@ pub(crate) struct Enum {
 #[derive(Debug)]
 pub(crate) struct Message {
     pub(crate) name: String,
-    pub(crate) message_id: usize,
+    pub(crate) number: usize,
     pub(crate) is_request: bool,
     pub(crate) ty: Option<MessageType>,
     pub(crate) since: Option<u32>,

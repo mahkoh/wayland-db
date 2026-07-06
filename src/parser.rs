@@ -1,7 +1,10 @@
 use {
-    crate::ast::{
-        Arg, ArgType, Copyright, Description, Entry, Enum, Interface, Message, MessageType,
-        Protocol,
+    crate::{
+        ast::{
+            Arg, ArgType, Copyright, Description, Entry, Enum, Interface, Message, MessageType,
+            Protocol,
+        },
+        id_source::IdSource,
     },
     quick_xml::{
         Reader,
@@ -170,10 +173,15 @@ pub enum AttributeError {
     DecodeUtf8(#[from] quick_xml::Error),
 }
 
-pub(crate) fn parse(path: &Path, input: &[u8]) -> Result<Vec<Protocol>, ParserError> {
+pub(crate) fn parse(
+    id_source: &mut IdSource,
+    path: &Path,
+    input: &[u8],
+) -> Result<Vec<Protocol>, ParserError> {
     let mut reader = Reader::from_reader(input);
     let mut parser = Parser {
         path,
+        id_source,
         reader: &mut reader,
     };
     let mut protocols = Vec::new();
@@ -204,6 +212,7 @@ macro_rules! parse_attr {
 
 struct Parser<'a> {
     path: &'a Path,
+    id_source: &'a mut IdSource,
     reader: &'a mut Reader<&'a [u8]>,
 }
 
@@ -219,6 +228,7 @@ impl Parser<'_> {
         attributes: Attributes,
         empty: bool,
     ) -> Result<Protocol, ProtocolError> {
+        let id = self.id_source.next();
         let mut name = None;
         for attr in attributes {
             let (n, value) = parse_attr!(attr)?;
@@ -255,6 +265,7 @@ impl Parser<'_> {
         }
         let name = name.ok_or(ProtocolError::MissingName)?;
         Ok(Protocol {
+            id,
             path: self.path.display().to_string(),
             name,
             copyright,
@@ -293,6 +304,7 @@ impl Parser<'_> {
         attributes: Attributes,
         empty: bool,
     ) -> Result<Description, DescriptionError> {
+        let id = self.id_source.next();
         let mut summary = None;
         for attr in attributes {
             let (n, value) = parse_attr!(attr)?;
@@ -316,6 +328,7 @@ impl Parser<'_> {
             }
         }
         Ok(Description {
+            id,
             summary,
             body: String::from_utf8(body).map_err(DescriptionError::DecodeUtf8)?,
         })
@@ -326,6 +339,7 @@ impl Parser<'_> {
         attributes: Attributes,
         empty: bool,
     ) -> Result<Interface, InterfaceError> {
+        let id = self.id_source.next();
         let mut name = None;
         let mut version = None;
         let mut frozen = None;
@@ -374,6 +388,7 @@ impl Parser<'_> {
         }
         let name = name.ok_or(InterfaceError::MissingName)?;
         Ok(Interface {
+            id,
             name,
             version: version.ok_or(InterfaceError::MissingVersion)?,
             frozen,
@@ -390,6 +405,7 @@ impl Parser<'_> {
         message_numbers: &mut usize,
         is_request: bool,
     ) -> Result<Message, MessageError> {
+        let id = self.id_source.next();
         let mut name = None;
         let mut ty = None;
         let mut since = None;
@@ -432,6 +448,7 @@ impl Parser<'_> {
         let number = *message_numbers;
         *message_numbers += 1;
         Ok(Message {
+            id,
             name: name.ok_or(MessageError::MissingName)?,
             number,
             is_request,
@@ -444,6 +461,7 @@ impl Parser<'_> {
     }
 
     fn parse_arg(&mut self, attributes: Attributes, empty: bool) -> Result<Arg, ArgError> {
+        let id = self.id_source.next();
         let mut name = None;
         let mut ty = None;
         let mut summary = None;
@@ -493,6 +511,7 @@ impl Parser<'_> {
             }
         }
         Ok(Arg {
+            id,
             name: name.ok_or(ArgError::MissingName)?,
             ty: ty.ok_or(ArgError::MissingType)?,
             summary,
@@ -504,6 +523,7 @@ impl Parser<'_> {
     }
 
     fn parse_enum(&mut self, attributes: Attributes, empty: bool) -> Result<Enum, EnumError> {
+        let id = self.id_source.next();
         let mut name = None;
         let mut since = None;
         let mut bitfield = None;
@@ -537,6 +557,7 @@ impl Parser<'_> {
             }
         }
         Ok(Enum {
+            id,
             name: name.ok_or(EnumError::MissingName)?,
             since,
             bitfield: bitfield.unwrap_or_default(),
@@ -546,6 +567,7 @@ impl Parser<'_> {
     }
 
     fn parse_entry(&mut self, attributes: Attributes, empty: bool) -> Result<Entry, EntryError> {
+        let id = self.id_source.next();
         let mut name = None;
         let mut value = None;
         let mut summary = None;
@@ -598,6 +620,7 @@ impl Parser<'_> {
             value_i64 = -value_i64;
         }
         Ok(Entry {
+            id,
             name: name.ok_or(EntryError::MissingName)?,
             value: value_string,
             value_i64,

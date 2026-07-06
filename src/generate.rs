@@ -2,6 +2,7 @@ use {
     crate::{
         ast::{ArgType, Description, Interface, MessageType},
         collector::collect,
+        id_source::IdSource,
     },
     indexmap::IndexMap,
     linearize::{StaticMap, static_map},
@@ -71,14 +72,9 @@ pub fn main() -> Result<(), GeneratorError> {
 }
 
 fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
-    let repos = collect();
+    let mut id_source = IdSource::default();
 
-    let mut next_id = 1i64;
-    let mut next_id = || {
-        let id = next_id;
-        next_id += 1;
-        id
-    };
+    let repos = collect(&mut id_source);
 
     tx.execute_batch(include_str!("../schema.sql"))
         .map_err(GeneratorError::CreateSchema)?;
@@ -152,10 +148,10 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
          (?, ?)",
     )?;
 
-    let mut insert_description = |id: i64, description: &Description| {
+    let mut insert_description = |description: &Description| {
         insert_description
             .execute(params![
-                id,
+                description.id,
                 &description.summary,
                 format_ml_text(&description.body)
             ])
@@ -165,9 +161,8 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
         ($description:expr) => {{
             let mut description_id = None;
             if let Some(description) = $description {
-                let id = next_id();
-                description_id = Some(id);
-                insert_description(id, description)?;
+                description_id = Some(description.id);
+                insert_description(description)?;
             }
             description_id
         }};
@@ -175,7 +170,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
 
     let types: StaticMap<ArgType, _> = static_map! {
         ty => {
-            let id = next_id();
+            let id = id_source.next();
             let name = match ty {
                 ArgType::NewId => "new_id",
                 ArgType::Int => "int",
@@ -207,23 +202,20 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
     }
 
     for repo in &repos {
-        let repo_id = next_id();
         insert_repo
-            .execute(params![repo_id, &repo.name, repo.url.trim()])
+            .execute(params![repo.id, &repo.name, repo.url.trim()])
             .map_err(GeneratorError::InsertRepo)?;
         for protocol in &repo.protocols {
             struct LocalInterface<'a> {
-                interface_id: i64,
                 interface: &'a Interface,
                 enums: HashMap<&'a str, i64>,
             }
             let mut interfaces: IndexMap<&str, LocalInterface<'_>> = Default::default();
-            let protocol_id = next_id();
             let description_id = insert_description!(&protocol.description);
             insert_protocol
                 .execute(params![
-                    protocol_id,
-                    repo_id,
+                    protocol.id,
+                    repo.id,
                     &protocol.name,
                     &protocol.path,
                     protocol.copyright.as_ref().map(|c| format_ml_text(&c.body)),
@@ -231,13 +223,11 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                 ])
                 .map_err(GeneratorError::InsertProtocol)?;
             for interface in &protocol.interfaces {
-                let interface_id = next_id();
                 let interface_dep = interface_deps.entry(&interface.name).or_default();
-                interface_dep.interface_ids.push(interface_id);
+                interface_dep.interface_ids.push(interface.id);
                 let local_interface = interfaces
                     .entry(&interface.name)
                     .insert_entry(LocalInterface {
-                        interface_id,
                         interface,
                         enums: Default::default(),
                     })
@@ -245,8 +235,8 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                 let description_id = insert_description!(&interface.description);
                 insert_interface
                     .execute(params![
-                        interface_id,
-                        protocol_id,
+                        interface.id,
+                        protocol.id,
                         &interface.name,
                         interface.version as i64,
                         interface.frozen,
@@ -254,19 +244,18 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                     ])
                     .map_err(GeneratorError::InsertInterface)?;
                 for enum_ in &interface.enums {
-                    let enum_id = next_id();
                     interface_dep
                         .enums
                         .entry(&enum_.name)
                         .or_default()
                         .enum_ids
-                        .push(enum_id);
-                    local_interface.enums.insert(&enum_.name, enum_id);
+                        .push(enum_.id);
+                    local_interface.enums.insert(&enum_.name, enum_.id);
                     let description_id = insert_description!(&enum_.description);
                     insert_enum
                         .execute(params![
-                            enum_id,
-                            interface_id,
+                            enum_.id,
+                            interface.id,
                             &enum_.name,
                             enum_.since.map(|v| v as i64),
                             enum_.bitfield,
@@ -274,12 +263,11 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                         ])
                         .map_err(GeneratorError::InsertEnum)?;
                     for entry in &enum_.entries {
-                        let entry_id = next_id();
                         let description_id = insert_description!(&entry.description);
                         insert_entry
                             .execute(params![
-                                entry_id,
-                                enum_id,
+                                entry.id,
+                                enum_.id,
                                 &entry.name,
                                 &entry.value,
                                 entry.value_i64,
@@ -294,12 +282,11 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
             }
             for interface in interfaces.values() {
                 for message in &interface.interface.messages {
-                    let message_id = next_id();
                     let description_id = insert_description!(&message.description);
                     insert_message
                         .execute(params![
-                            message_id,
-                            interface.interface_id,
+                            message.id,
+                            interface.interface.id,
                             message.number as i64,
                             &message.name,
                             message.is_request,
@@ -310,12 +297,11 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                         ])
                         .map_err(GeneratorError::InsertMessage)?;
                     for (pos, arg) in message.args.iter().enumerate() {
-                        let arg_id = next_id();
                         let description_id = insert_description!(&arg.description);
                         insert_arg
                             .execute(params![
-                                arg_id,
-                                message_id,
+                                arg.id,
+                                message.id,
                                 pos as i64,
                                 &arg.name,
                                 types[arg.ty],
@@ -329,14 +315,14 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                         if let Some(interface_name) = &arg.interface {
                             if let Some(local_interface) = interfaces.get(&**interface_name) {
                                 insert_rel_arg_interface
-                                    .insert(params![arg_id, local_interface.interface_id])
+                                    .insert(params![arg.id, local_interface.interface.id])
                                     .map_err(GeneratorError::InsertRelArgInterface)?;
                             } else {
                                 interface_deps
                                     .entry(interface_name)
                                     .or_default()
                                     .arg_ids
-                                    .push(arg_id);
+                                    .push(arg.id);
                             }
                         }
                         if let Some(enum_name) = &arg.enum_ {
@@ -347,7 +333,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                                 && let Some(enum_id) = local_interface.enums.get(enum_name)
                             {
                                 insert_rel_arg_enum
-                                    .insert(params![arg_id, enum_id])
+                                    .insert(params![arg.id, enum_id])
                                     .map_err(GeneratorError::InsertRelArgEnum)?;
                             } else {
                                 interface_deps
@@ -357,7 +343,7 @@ fn insert(tx: &Transaction<'_>) -> Result<(), GeneratorError> {
                                     .entry(enum_name)
                                     .or_default()
                                     .arg_ids
-                                    .push(arg_id);
+                                    .push(arg.id);
                             }
                         }
                     }

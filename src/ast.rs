@@ -2,6 +2,7 @@ use linearize::Linearize;
 
 #[derive(Debug)]
 pub(crate) struct Protocol {
+    pub(crate) id: i64,
     pub(crate) path: String,
     pub(crate) name: String,
     pub(crate) copyright: Option<Copyright>,
@@ -16,12 +17,14 @@ pub(crate) struct Copyright {
 
 #[derive(Debug)]
 pub(crate) struct Description {
+    pub(crate) id: i64,
     pub(crate) summary: Option<String>,
     pub(crate) body: String,
 }
 
 #[derive(Debug)]
 pub(crate) struct Interface {
+    pub(crate) id: i64,
     pub(crate) name: String,
     pub(crate) version: u32,
     pub(crate) frozen: Option<bool>,
@@ -32,6 +35,7 @@ pub(crate) struct Interface {
 
 #[derive(Debug)]
 pub(crate) struct Arg {
+    pub(crate) id: i64,
     pub(crate) name: String,
     pub(crate) ty: ArgType,
     pub(crate) summary: Option<String>,
@@ -60,6 +64,7 @@ pub(crate) enum MessageType {
 
 #[derive(Debug)]
 pub(crate) struct Entry {
+    pub(crate) id: i64,
     pub(crate) name: String,
     pub(crate) value: String,
     pub(crate) value_i64: i64,
@@ -71,6 +76,7 @@ pub(crate) struct Entry {
 
 #[derive(Debug)]
 pub(crate) struct Enum {
+    pub(crate) id: i64,
     pub(crate) name: String,
     pub(crate) since: Option<u32>,
     pub(crate) bitfield: bool,
@@ -80,6 +86,7 @@ pub(crate) struct Enum {
 
 #[derive(Debug)]
 pub(crate) struct Message {
+    pub(crate) id: i64,
     pub(crate) name: String,
     pub(crate) number: usize,
     pub(crate) is_request: bool,

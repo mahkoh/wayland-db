@@ -1,5 +1,5 @@
 use {
-    crate::{ast::Protocol, parser::parse},
+    crate::{ast::Protocol, id_source::IdSource, parser::parse},
     error_reporter::Report,
     regex::Regex,
     std::{
@@ -11,6 +11,7 @@ use {
 
 #[derive(Debug)]
 pub(crate) struct Repo {
+    pub(crate) id: i64,
     pub(crate) name: &'static str,
     pub(crate) url: String,
     pub(crate) protocols: Vec<Protocol>,
@@ -22,7 +23,7 @@ struct Config {
     exclude: Option<Regex>,
 }
 
-pub(crate) fn collect() -> Vec<Repo> {
+pub(crate) fn collect(id_source: &mut IdSource) -> Vec<Repo> {
     let configs = [
         Config {
             dir: "cosmic-protocols",
@@ -82,6 +83,7 @@ pub(crate) fn collect() -> Vec<Repo> {
     let repos_dir = Path::new("repos");
     let mut repos = vec![];
     for config in configs {
+        let id = id_source.next();
         let repo_dir = repos_dir.join(config.dir);
         let Some(url) = get_url(&repo_dir) else {
             continue;
@@ -117,7 +119,7 @@ pub(crate) fn collect() -> Vec<Repo> {
                     continue;
                 }
             };
-            let p = match parse(rel_path, &contents) {
+            let p = match parse(id_source, rel_path, &contents) {
                 Ok(c) => c,
                 Err(e) => {
                     eprintln!("Could not parse {}: {}", file.display(), Report::new(e));
@@ -128,6 +130,7 @@ pub(crate) fn collect() -> Vec<Repo> {
         }
         protocols.sort_by(|p1, p2| p1.name.cmp(&p2.name));
         repos.push(Repo {
+            id,
             name: config.dir,
             url,
             protocols,

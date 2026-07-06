@@ -605,7 +605,7 @@ impl Parser<'_> {
             }
         }
         let value_string = value.ok_or(EntryError::MissingValue)?;
-        let mut negative = true;
+        let mut negative = false;
         let mut value = &*value_string;
         if let Some(v) = value.strip_prefix("-") {
             negative = true;

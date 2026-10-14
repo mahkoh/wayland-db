@@ -18,7 +18,7 @@
 	url = https://github.com/mahkoh/jay-protocols.git
 [submodule "repos/plasma-wayland-protocols"]
 	path = repos/plasma-wayland-protocols
-	url = https://invent.kde.org/libraries/plasma-wayland-protocols.git
+	url = https://github.com/KDE/plasma-wayland-protocols.git
 [submodule "repos/weston"]
 	path = repos/weston
 	url = https://gitlab.freedesktop.org/wayland/weston.git

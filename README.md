@@ -9,7 +9,7 @@ protocols from the following sources:
 - https://github.com/hyprwm/hyprland-protocols.git
 - https://github.com/linuxdeepin/treeland-protocols.git
 - https://github.com/mahkoh/jay-protocols.git
-- https://invent.kde.org/libraries/plasma-wayland-protocols.git
+- https://github.com/KDE/plasma-wayland-protocols.git
 - https://gitlab.freedesktop.org/wayland/weston.git
 - https://github.com/pop-os/cosmic-protocols.git
 - https://codeberg.org/river/river.git
